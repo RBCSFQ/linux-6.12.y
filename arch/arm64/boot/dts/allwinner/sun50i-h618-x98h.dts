@@ -98,14 +98,6 @@
 };
 
 &emac1 {
-	/* Override compatible to use a64 variant (default_syscon_value=0)
-	 * instead of h616-emac variant (default_syscon_value=0x50000)
-	 * which sets H3_EPHY_SHUTDOWN and kills the internal 100M PHY.
-	 * Keep syscon index 1 so EMAC1 phase register is still addressed.
-	 */
-	compatible = "allwinner,sun50i-h616-emac0",
-		     "allwinner,sun50i-a64-emac";
-	syscon = <&syscon 1>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&rmii_pins>;
 	phy-mode = "rmii";
