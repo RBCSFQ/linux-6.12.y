@@ -545,6 +545,10 @@
 	num-lanes = <4>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pcie_clkreqnb_cpm &fn8274_en_h>;
+	/* Gen2 speed; 0x83000000 = 64-bit prefetchable memory to fix SATA DMA issue */
+	max-link-speed = <2>;
+	ranges = <0x83000000 0x0 0xfa000000 0x0 0xfa000000 0x0 0x1e00000>,
+		 <0x81000000 0x0 0xfbe00000 0x0 0xfbe00000 0x0 0x100000>;
 	status = "okay";
 };
 
