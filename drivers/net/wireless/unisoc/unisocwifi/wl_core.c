@@ -396,7 +396,6 @@ static int txrx_debug_show(struct seq_file *s, void *p)
 	for (i = 0; i < MAX_DEBUG_RECORD_INDEX; i++)
 		debug_record_show(s, i);
 
-	return 0;
 }
 
 static int txrx_debug_open(struct inode *inode, struct file *file)
@@ -572,7 +571,6 @@ static int wifi_exception_event(void)
 	envp[0] = "CP2-EXCEPTION-EVENT";
 	envp[1] = NULL;
 	kobject_uevent_env(&sprdwl_dev->kobj, KOBJ_CHANGE, envp);
-	return 0;
 }
 
 int wifi_reset_callback(struct notifier_block *nb, unsigned long event, void *v)
@@ -704,7 +702,7 @@ err:
 	return ret;
 }
 
-static int sprdwl_remove(struct platform_device *pdev)
+static void sprdwl_remove(struct platform_device *pdev)
 {
 	struct sprdwl_intf *intf = platform_get_drvdata(pdev);
 	struct sprdwl_priv *priv = intf->priv;
@@ -724,7 +722,6 @@ static int sprdwl_remove(struct platform_device *pdev)
 	stop_marlin(MARLIN_WIFI);
 	wl_info("%s\n", __func__);
 
-	return 0;
 }
 
 static const struct of_device_id sprdwl_of_match[] = {
