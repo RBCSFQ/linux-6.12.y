@@ -21,6 +21,7 @@ ccflags-y += -DCONFIG_WCN_PARSE_DTS
 ccflags-y += -I$(src)/include/
 ccflags-y += -I$(src)/platform/
 ccflags-y += -I$(src)/platform/rf/
+ccflags-y += -include $(src)/include/unisoc_612_compat.h
 
 MODULE_NAME := uwe5621_bsp_sdio
 
