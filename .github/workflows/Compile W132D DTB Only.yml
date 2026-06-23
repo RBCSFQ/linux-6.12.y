@@ -21,19 +21,12 @@ jobs:
           export CROSS_COMPILE=aarch64-linux-gnu-
           # Generate default config (fast, just need it for DTC includes)
           make defconfig
-          # for UWE5621DS drivers
-          scripts/config -e CONFIG_SPARD_WLAN_SUPPORT
-          scripts/config -e CONFIG_RK_WIFI_DEVICE_UWE5621
-          scripts/config -d CONFIG_SPRDWL_NG
-          scripts/config -d CONFIG_TTY_OVERY_SDIO
-          make olddefconfig
-          # Compile W132D DTB kernel with built-in drivers
           make modules_prepare
-          make M=drivers/net/wireless/unisoc modules
+          make M=drivers/net/wireless/unisoc CONFIG_RK_WIFI_DEVICE_UWE5621=y CONFIG_WCN_SDIO=y CONFIG_SPRDWL_NG=y CONFIG_TTY_OVERY_SDIO=y modules
           make dtbs DTBS=rk3528-w132d.dtb
           # Verify output
           ls -la arch/arm64/boot/dts/rockchip/rk3528-w132d.dtb
-          find drivers/net/wireless/unisoc -name "*.ko" | xargs -r ls -la
+          find drivers/net/wireless/unisoc -name "*.ko" -ls
 
       - name: Upload DTB as artifact
         uses: actions/upload-artifact@v4
