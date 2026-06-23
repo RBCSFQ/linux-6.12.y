@@ -21,6 +21,12 @@ jobs:
           export CROSS_COMPILE=aarch64-linux-gnu-
           # Generate default config (fast, just need it for DTC includes)
           make defconfig
+          # for UWE5621DS drivers
+          scripts/config -e CONFIG_SPARD_WLAN_SUPPORT
+          scripts/config -e CONFIG_RK_WIFI_DEVICE_UWE5621
+          scripts/config -e CONFIG_SPRDWL_NG
+          scripts/config -e CONFIG_TTY_OVERY_SDIO
+          make olddefconfig
           # Compile only W132D DTB
           make dtbs DTBS=rk3528-w132d.dtb
           # Verify output
