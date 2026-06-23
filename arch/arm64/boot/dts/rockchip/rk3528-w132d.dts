@@ -128,13 +128,17 @@
 
 /*
  * USB: u2phy-only, no combphy.
- * /delete-property/ power-domains is CRITICAL: W132D hardware cannot handle
- * PMU register access via rockchip power-controller (SError on regmap_mmio_read).
- * Removing power-domains disables PMU domain gating for USB, preventing the crash.
- * USB controllers have independent clocks/resets so they can initialize without PMU.
+ * /delete-property/ power-domains avoids SError on PMU regmap access.
+ *
+ * CRITICAL FIX: rk3528.dtsi in ophub 6.12 points rockchip,usbgrf to &vo_grf (ff360000)
+ * but the correct GRF for USB2 PHY control is at ff300000 (plain GRF, not VO GRF).
+ * The 6.1 working DTS confirms this: rockchip,usbgrf = <phandle to ff300000 GRF>.
+ * We override rockchip,usbgrf here to point to a simple syscon at the correct address.
  */
 &u2phy {
 	/delete-property/ power-domains;
+	/delete-property/ rockchip,usbgrf;
+	rockchip,usbgrf = <&usb_grf>;
 	status = "okay";
 };
 
@@ -194,4 +198,14 @@
 			rockchip,pins = <4 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
+};
+
+/*
+ * Minimal syscon node for GRF at ff300000 (correct USB2 PHY control registers).
+ * The 6.12 dtsi is missing this node; 6.1 DTS has it as rockchip,rk3528-grf at ff300000.
+ * We only need it as a simple syscon regmap for rockchip-usb2phy to use.
+ */
+usb_grf: syscon@ff300000 {
+	compatible = "rockchip,rk3528-grf", "syscon";
+	reg = <0x0 0xff300000 0x0 0x90000>;
 };
