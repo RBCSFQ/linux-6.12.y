@@ -4,9 +4,7 @@
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/phy/phy.h>
 #include <dt-bindings/pinctrl/rockchip.h>
-#include <dt-bindings/pwm/pwm.h>
 #include "rk3528.dtsi"
-#include "rk3528-op-pwm.dtsi"
 
 / {
 	model = "Rockchip RK3528 W132D";
@@ -69,17 +67,6 @@
 		vin-supply = <&vcc5v0_sys>;
 	};
 
-	vccio_sd: vccio-sd {
-		compatible = "regulator-gpio";
-		regulator-name = "vccio_sd";
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <3300000>;
-		gpios = <&gpio4 RK_PB6 GPIO_ACTIVE_HIGH>;
-		vin-supply = <&vcc5v0_sys>;
-		states = <1800000 0x0
-			  3300000 0x1>;
-	};
-
 	vcc_1v8_wifi: vcc-1v8-wifi {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc_1v8_wifi";
@@ -87,34 +74,6 @@
 		regulator-max-microvolt = <1800000>;
 		regulator-always-on;
 		vin-supply = <&vcc5v0_sys>;
-	};
-
-	vdd_logic: vdd-logic {
-		compatible = "pwm-regulator";
-		pwms = <&pwm2 0 5000 PWM_POLARITY_INVERTED>;
-		regulator-name = "vdd_logic";
-		regulator-min-microvolt = <705000>;
-		regulator-max-microvolt = <1006000>;
-		regulator-init-microvolt = <900000>;
-		regulator-always-on;
-		regulator-boot-on;
-		regulator-settling-time-up-us = <250>;
-		pwm-supply = <&vcc5v0_sys>;
-	};
-
-	vdd_arm: vdd-arm {
-		compatible = "pwm-regulator";
-		pwms = <&pwm1 0 5000 PWM_POLARITY_INVERTED>;
-		regulator-name = "vdd_arm";
-		regulator-min-microvolt = <746000>;
-		regulator-max-microvolt = <1201000>;
-		regulator-init-microvolt = <953000>;
-		regulator-always-on;
-		regulator-boot-on;
-		regulator-settling-time-up-us = <250>;
-		regulator-enable-ramp-delay = <400>;
-		regulator-ramp-delay = <12500>;
-		pwm-supply = <&vcc5v0_sys>;
 	};
 
 	io-domains {
@@ -130,25 +89,29 @@
 	};
 };
 
-&cpu0 {
-	cpu-supply = <&vdd_arm>;
+&sdhci {
+	bus-width = <8>;
+	non-removable;
+	max-frequency = <200000000>;
+	status = "okay";
 };
 
-&cpu1 {
-	cpu-supply = <&vdd_arm>;
-};
-
-&cpu2 {
-	cpu-supply = <&vdd_arm>;
-};
-
-&cpu3 {
-	cpu-supply = <&vdd_arm>;
+&sdmmc {
+	bus-width = <4>;
+	cap-sd-highspeed;
+	disable-wp;
+	max-frequency = <150000000>;
+	no-1-8-v;
+	vmmc-supply = <&vcc_sd>;
+	vqmmc-supply = <&vcc_sd>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc_bus4 &sdmmc_clk &sdmmc_cmd &sdmmc_det>;
+	status = "okay";
 };
 
 &gmac0 {
-	phy-handle = <&rmii0_phy>;
 	phy-mode = "rmii";
+	phy-handle = <&rmii0_phy>;
 	clock_in_out = "input";
 	status = "okay";
 };
@@ -163,87 +126,15 @@
 	};
 };
 
-&pinctrl {
-	usb {
-		vcc5v0_host_en: vcc5v0-host-en {
-			rockchip,pins = <4 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
-};
-
-&pwm0 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pwm0m0_pins>;
-	status = "okay";
-};
-
-&pwm1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pwm1m0_pins>;
-	status = "okay";
-};
-
-&pwm2 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pwm2m0_pins>;
-	status = "okay";
-};
-
-&sdhci {
-	bus-width = <8>;
-	no-sd;
-	no-sdio;
-	non-removable;
-	mmc-hs200-1_8v;
-	max-frequency = <200000000>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&emmc_clk &emmc_cmd &emmc_strb &emmc_bus8>;
-	status = "okay";
-};
-
-&sdmmc {
-	bus-width = <4>;
-	cap-mmc-highspeed;
-	cap-sd-highspeed;
-	disable-wp;
-	max-frequency = <150000000>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&sdmmc_clk &sdmmc_cmd &sdmmc_det &sdmmc_bus4>;
-	supports-sd;
-	sd-uhs-sdr12;
-	sd-uhs-sdr25;
-	sd-uhs-sdr50;
-	sd-uhs-sdr104;
-	vmmc-supply = <&vcc_sd>;
-	vqmmc-supply = <&vccio_sd>;
-	status = "okay";
-};
-
-&tsadc {
-	status = "okay";
-};
-
-&threshold {
-	temperature = <75000>;
-};
-
-&target {
-	temperature = <85000>;
-};
-
-&soc_crit {
-	temperature = <100000>;
-};
-
-&uart0 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&uart0m0_xfer>;
-	status = "okay";
-};
-
-/* USB: match 6.1 working DTS - u2phy + DWC3 (u2phy_otg only, no combphy).
-   combphy (USB3) needs special PMU handling that conflicts with PWM on this kernel. */
+/*
+ * USB: u2phy-only, no combphy.
+ * /delete-property/ power-domains is CRITICAL: W132D hardware cannot handle
+ * PMU register access via rockchip power-controller (SError on regmap_mmio_read).
+ * Removing power-domains disables PMU domain gating for USB, preventing the crash.
+ * USB controllers have independent clocks/resets so they can initialize without PMU.
+ */
 &u2phy {
+	/delete-property/ power-domains;
 	status = "okay";
 };
 
@@ -258,6 +149,7 @@
 };
 
 &usb_host0_xhci {
+	/delete-property/ power-domains;
 	dr_mode = "host";
 	phys = <&u2phy_otg>;
 	phy-names = "usb2-phy";
@@ -271,13 +163,35 @@
 };
 
 &usb_host0_ehci {
+	/delete-property/ power-domains;
 	phys = <&u2phy_host>;
 	phy-names = "usb";
 	status = "okay";
 };
 
 &usb_host0_ohci {
+	/delete-property/ power-domains;
 	phys = <&u2phy_host>;
 	phy-names = "usb";
 	status = "okay";
+};
+
+&uart0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart0m0_xfer>;
+	status = "okay";
+};
+
+&tsadc { status = "okay"; };
+
+&threshold { temperature = <75000>; };
+&target { temperature = <85000>; };
+&soc_crit { temperature = <100000>; };
+
+&pinctrl {
+	usb {
+		vcc5v0_host_en: vcc5v0-host-en {
+			rockchip,pins = <4 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
 };
