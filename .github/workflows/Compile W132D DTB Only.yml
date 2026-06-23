@@ -27,10 +27,13 @@ jobs:
           scripts/config -e CONFIG_SPRDWL_NG
           scripts/config -e CONFIG_TTY_OVERY_SDIO
           make olddefconfig
+          make modules_prepare
+          make M=drivers/net/wireless/unisoc modules
           # Compile only W132D DTB
           make dtbs DTBS=rk3528-w132d.dtb
           # Verify output
           ls -la arch/arm64/boot/dts/rockchip/rk3528-w132d.dtb
+          find drivers/net/wireless/unisoc -name "*.ko" | xargs -r ls -la
 
       - name: Upload DTB as artifact
         uses: actions/upload-artifact@v4
