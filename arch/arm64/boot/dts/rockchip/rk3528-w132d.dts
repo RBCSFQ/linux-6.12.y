@@ -55,6 +55,16 @@
 		vin-supply = <&vcc5v0_sys>;
 	};
 
+	vdd_1v8_s3: vdd-1v8-s3 {
+		compatible = "regulator-fixed";
+		regulator-name = "vdd_1v8_s3";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
 	vcc_sd: vcc-sd {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc_sd";
@@ -97,6 +107,80 @@
 		compatible = "rockchip,rk3528-grf", "syscon";
 		reg = <0x0 0xff300000 0x0 0x90000>;
 	};
+
+	/*
+	 * SDIO power sequence for UWE5621DS.
+	 * GPIO mapping from Android native DTS, confirmed by 6.1 working DTS:
+	 *   wifi-enable-h:    gpio3 RK_PB2 (pin 10)
+	 *   wifi-reset:       gpio3 RK_PB4 (pin 12), init output-high
+	 *   reset-gpios:      gpio3 RK_PB2 (pin 10), ACTIVE_LOW
+	 */
+	sdio_pwrseq: sdio-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_enable_h &wifi_reset>;
+		reset-gpios = <&gpio3 RK_PB2 GPIO_ACTIVE_LOW>;
+		post-power-on-delay-ms = <1000>;
+		status = "okay";
+	};
+
+	/*
+	 * UWE5621DS core management (firmware download, power sequencing).
+	 * The wcn_boot.ko driver probes "unisoc,uwe_bsp".
+	 *
+	 * GPIO mapping from Android native DTS, confirmed by 6.1 working DTS:
+	 *   wl-reg-on         = gpio3 RK_PC2 (pin 18) -- WIFI/BT chip enable
+	 *   bt-reg-on         = gpio3 RK_PC2 (pin 18) -- shared enable for BT
+	 *   pub-int-gpio      = gpio3 RK_PB3 (pin 11) -- SDIO data interrupt
+	 *   bt-wake-host-gpio = gpio3 RK_PC1 (pin 17) -- BT wakes host
+	 *
+	 *   sdhci-name = <&sdio1> -- tells the driver which SDIO controller
+	 *   unisoc,btwf-file-name = "/lib/firmware/wcnmodem.bin" -- Linux std path
+	 */
+	uwe_bsp: uwe-bsp {
+		compatible = "unisoc,uwe_bsp";
+		wl-reg-on = <&gpio3 RK_PC2 GPIO_ACTIVE_HIGH>;
+		bt-reg-on = <&gpio3 RK_PC2 GPIO_ACTIVE_HIGH>;
+		pub-int-gpio = <&gpio3 RK_PB3 GPIO_ACTIVE_HIGH>;
+		sdhci-name = <&sdio1>;
+		unisoc,btwf-file-name = "/lib/firmware/wcnmodem.bin";
+		bt-wake-host;
+		bt-wake-host-gpio = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>;
+		data-irq;
+		blksz-512;
+		keep-power-on;
+		status = "okay";
+	};
+
+	sprd_wlan: sprd-wlan {
+		compatible = "sprd,unisoc-wifi";
+		status = "okay";
+	};
+
+	wireless_wlan: wireless-wlan {
+		compatible = "wlan-platdata";
+		wifi_chip_type = "sprdwl";
+		WIFI,host_wake_irq = <&gpio3 RK_PB3 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_host_wake>;
+		status = "okay";
+	};
+
+	wireless_bluetooth: wireless-bluetooth {
+		compatible = "bluetooth-platdata";
+		uart_rts_gpios = <&gpio3 RK_PA2 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default", "rts_gpio";
+		pinctrl-0 = <&uart2m0_xfer>;
+		pinctrl-1 = <&uart2m0_gpios>;
+		BT,wake_host_irq = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
+	sprd_mtty: sprd-mtty {
+		compatible = "sprd,mtty";
+		sprd,name = "ttyBT";
+		status = "okay";
+	};
 };
 
 &sdhci {
@@ -116,6 +200,41 @@
 	vqmmc-supply = <&vcc_sd>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc_bus4 &sdmmc_clk &sdmmc_cmd &sdmmc_det>;
+	status = "okay";
+};
+
+/*
+ * SDIO1 -- UWE5621DS WIFI/BT module.
+ * SDIO carries WIFI data. No fixed child node; SDIO stack probes at runtime.
+ *
+ * vmmc-supply = 3.3V (vcc_3v3_s3), vqmmc-supply = 1.8V (vdd_1v8_s3)
+ * These match the 6.1 working DTS power setup.
+ * sd-uhs-sdr104 for UWE5621 throughput.
+ * power-domains deleted to avoid SError on PMU regmap.
+ */
+&sdio1 {
+	/delete-property/ power-domains;
+	max-frequency = <200000000>;
+	bus-width = <4>;
+	cap-sd-highspeed;
+	cap-sdio-irq;
+	keep-power-in-suspend;
+	non-removable;
+	cap-power-off-card;
+	mmc-pwrseq = <&sdio_pwrseq>;
+	vmmc-supply = <&vcc_3v3_s3>;
+	vqmmc-supply = <&vdd_1v8_s3>;
+	sd-uhs-sdr104;
+	status = "okay";
+};
+
+/*
+ * UART2 -- Bluetooth HCI transport for UWE5621DS.
+ */
+&uart2 {
+	/delete-property/ power-domains;
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart2m0_xfer>;
 	status = "okay";
 };
 
@@ -202,6 +321,27 @@
 	usb {
 		vcc5v0_host_en: vcc5v0-host-en {
 			rockchip,pins = <4 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	sdio-pwrseq {
+		wifi_enable_h: wifi-enable-h {
+			rockchip,pins = <3 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+		wifi_reset: wifi-reset {
+			rockchip,pins = <3 RK_PB4 RK_FUNC_GPIO &pcfg_output_high>;
+		};
+	};
+
+	wireless-wlan {
+		wifi_host_wake: wifi-host-wake {
+			rockchip,pins = <3 RK_PB3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	wireless-bluetooth {
+		uart2m0_gpios: uart2m0-gpios {
+			rockchip,pins = <3 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
