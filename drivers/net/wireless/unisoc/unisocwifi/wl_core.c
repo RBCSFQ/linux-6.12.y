@@ -396,6 +396,7 @@ static int txrx_debug_show(struct seq_file *s, void *p)
 	for (i = 0; i < MAX_DEBUG_RECORD_INDEX; i++)
 		debug_record_show(s, i);
 
+	return 0;
 }
 
 static int txrx_debug_open(struct inode *inode, struct file *file)
