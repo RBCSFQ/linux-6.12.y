@@ -87,6 +87,16 @@
 		vccio7-supply = <&vcc5v0_sys>;
 		status = "okay";
 	};
+
+	/*
+	 * Minimal syscon for GRF at ff300000. The 6.12 dtsi points rockchip,usbgrf
+	 * to &vo_grf (ff360000), but USB2 PHY control registers are in the plain
+	 * GRF at ff300000 (confirmed by 6.1 working DTS).
+	 */
+	usb_grf: syscon@ff300000 {
+		compatible = "rockchip,rk3528-grf", "syscon";
+		reg = <0x0 0xff300000 0x0 0x90000>;
+	};
 };
 
 &sdhci {
@@ -129,11 +139,7 @@
 /*
  * USB: u2phy-only, no combphy.
  * /delete-property/ power-domains avoids SError on PMU regmap access.
- *
- * CRITICAL FIX: rk3528.dtsi in ophub 6.12 points rockchip,usbgrf to &vo_grf (ff360000)
- * but the correct GRF for USB2 PHY control is at ff300000 (plain GRF, not VO GRF).
- * The 6.1 working DTS confirms this: rockchip,usbgrf = <phandle to ff300000 GRF>.
- * We override rockchip,usbgrf here to point to a simple syscon at the correct address.
+ * rockchip,usbgrf corrected from &vo_grf to &usb_grf (ff300000).
  */
 &u2phy {
 	/delete-property/ power-domains;
@@ -198,14 +204,4 @@
 			rockchip,pins = <4 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
-};
-
-/*
- * Minimal syscon node for GRF at ff300000 (correct USB2 PHY control registers).
- * The 6.12 dtsi is missing this node; 6.1 DTS has it as rockchip,rk3528-grf at ff300000.
- * We only need it as a simple syscon regmap for rockchip-usb2phy to use.
- */
-usb_grf: syscon@ff300000 {
-	compatible = "rockchip,rk3528-grf", "syscon";
-	reg = <0x0 0xff300000 0x0 0x90000>;
 };
