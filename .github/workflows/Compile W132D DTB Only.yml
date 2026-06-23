@@ -1,0 +1,33 @@
+name: Compile W132D DTB Only
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-dtb:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout kernel source
+        uses: actions/checkout@v4
+
+      - name: Install ARM64 cross-compiler
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gcc-aarch64-linux-gnu
+
+      - name: Prepare kernel config and compile DTB
+        run: |
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          # Generate default config (fast, just need it for DTC includes)
+          make defconfig
+          # Compile only W132D DTB
+          make dtbs DTBS=rk3528-w132d.dtb
+          # Verify output
+          ls -la arch/arm64/boot/dts/rockchip/rk3528-w132d.dtb
+
+      - name: Upload DTB as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rk3528-w132d-dtb
+          path: arch/arm64/boot/dts/rockchip/rk3528-w132d.dtb
