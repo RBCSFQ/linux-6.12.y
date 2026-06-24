@@ -469,8 +469,8 @@ static  int sdio_data_transmit(uint8_t *data, size_t count)
 	return mtty_write(NULL, data, count);
 }
 
-static int mtty_write_plus(struct tty_struct *tty, const unsigned char *buf,
-		    int count)
+static ssize_t mtty_write_plus(struct tty_struct *tty, const u8 *buf,
+		    size_t count)
 {
 	ssize_t ret;
 
@@ -479,7 +479,7 @@ static int mtty_write_plus(struct tty_struct *tty, const unsigned char *buf,
 		return (int)ret;
 	if (ret > INT_MAX)
 		ret = INT_MAX;
-	return (int)ret;
+	return (ssize_t)ret;
 }
 
 static void mtty_flush_chars(struct tty_struct *tty)
