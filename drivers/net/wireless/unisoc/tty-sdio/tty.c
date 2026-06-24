@@ -476,10 +476,10 @@ static ssize_t mtty_write_plus(struct tty_struct *tty, const u8 *buf,
 
 	ret = sitm_write(buf, count, sdio_data_transmit);
 	if (ret < 0)
-		return (int)ret;
+		return ret;
 	if (ret > INT_MAX)
 		ret = INT_MAX;
-	return (ssize_t)ret;
+	return ret;
 }
 
 static void mtty_flush_chars(struct tty_struct *tty)
