@@ -714,7 +714,7 @@ static int  mtty_probe(struct platform_device *pdev)
 	}
 //#endif
 
-	rfkill_bluetooth_init(pdev);
+	/* rfkill_bluetooth_init(pdev); -- removed, not needed for UART BT */
 	bluesleep_init();
 	woble_init();
 	sprdwcn_bus_chn_init(&bt_rx_ops);
