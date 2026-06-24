@@ -24,6 +24,19 @@ jobs:
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           make defconfig
+          scripts/config --disable CLK_IMX8MP
+          scripts/config --disable CLK_IMX8MM
+          scripts/config --disable CLK_IMX8MN
+          scripts/config --disable CLK_IMX93
+          scripts/config --disable CLK_IMX95
+          scripts/config --disable CLK_IMXRT1050
+          scripts/config --disable RESET_IMX7
+          scripts/config --disable PINCTRL_IMX
+          scripts/config --disable PINCTRL_IMX8MP
+          scripts/config --disable PINCTRL_IMX8MM
+          scripts/config --disable PINCTRL_IMX8MN
+          scripts/config --disable PINCTRL_IMX93
+          yes "" | make olddefconfig
           make -j$(nproc) Image dtbs DTBS=rk3528-w132d.dtb
 
       - name: Show artifacts
